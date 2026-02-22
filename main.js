@@ -25,7 +25,7 @@ You must ALWAYS respond with raw JSON only. No markdown. No backticks. No prose 
 For text: {"type":"text","response":"<your response with personality>"}
 For image: {"type":"image","imagePrompt":"<detailed, optimized image generation prompt>","reason":"<one punchy line about what you're generating>"}
 
-The imagePrompt should be detailed and specific — colors, lighting, composition, style, mood. Don't be lazy with it.`,
+The imagePrompt should be written in booru tag style — comma separated short tags, no prose, no sentences. Order: subject, description, clothing, pose/action, setting, lighting, quality tags. Example: "1girl, silver hair, hair over one eye, laughing, ruffle blouse, pleated skirt, dancing, one foot raised, wildflower hill, cloudy sky, wind, masterpiece, best quality, very aesthetic". Don't be lazy with it.`,
   a1111Url: 'http://127.0.0.1:7860',
   modelsDir: 'F:/AI/A1111/stable-diffusion-webui-amdgpu/models/Stable-diffusion',
   outputDir: 'F:/AI/OwnAI/generated',

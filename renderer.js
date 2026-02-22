@@ -467,8 +467,18 @@ async function generateImage(rawPrompt) {
   const promptStep = addThoughtStep(thoughtContainer, 5, 'Finalizing prompt & parameters…');
   // AI refines the prompt based on model notes
   const refineMessages = [
-    { role: 'system', content: `You are an expert at Stable Diffusion prompts. Refine the user's prompt for the model described. Respond ONLY with JSON: {"prompt":"<refined positive prompt>","negative_prompt":"<negative prompt>"}` },
-    { role: 'user', content: `Model: ${model.baseName}\nModel notes:\n${model.notes}\n\nUser prompt: ${finalPrompt}\n\nRefine into an optimal SD prompt.` }
+    { role: 'system', content: `You are an expert Stable Diffusion prompt engineer. Your job is to convert the user's request into a clean, ordered list of booru-style tags for image generation.
+
+BOORU TAG RULES — follow these exactly:
+- Use comma-separated short tags, NO full sentences, NO prose
+- Order tags like this: subject count (1girl, 2girls), subject description (hair color, eye color, expression, clothing), action/pose, accessories, setting/background, lighting, quality tags
+- Use standard danbooru tags where possible: "1girl", "pink hair", "hair over one eye", "laughing", "pleated skirt", "ruffle blouse", "dancing", "one foot raised", "wildflower field", "cloudy sky", etc.
+- NO underscores — use spaces: "hair over one eye" not "hair_over_one_eye"
+- Quality tags go at the END: masterpiece, best quality, very aesthetic, ultra-detailed
+- Negative prompt should also be comma-separated booru-style tags
+- Pull trigger words and negative prompt from the model notes
+- Respond ONLY with raw JSON, no markdown: {"prompt":"<booru tags>","negative_prompt":"<booru tags>"}` },
+    { role: 'user', content: `Model: ${model.baseName}\nModel notes:\n${model.notes}\n\nUser request: ${finalPrompt}\n\nConvert into booru-style SD tags. Follow tag ordering rules strictly.` }
   ];
 
   const refineRes = await window.api.openai.chat(refineMessages);
