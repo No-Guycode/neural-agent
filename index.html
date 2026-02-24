@@ -678,6 +678,17 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
 
         <div class="setting-group">
           <div class="setting-group-label">A1111 Backend</div>
+          <div class="toggle-row">
+            <span class="toggle-label">Auto-launch WebUI on start</span>
+            <label class="toggle">
+              <input type="checkbox" id="s-auto-launch" checked/>
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="form-row">
+            <label class="form-label">WebUI .bat Path</label>
+            <input type="text" class="form-input" id="s-webui-bat" placeholder="F:/AI/A1111/.../webui-user.bat"/>
+          </div>
           <div class="form-row">
             <label class="form-label">WebUI URL</label>
             <input type="text" class="form-input" id="s-a1111-url" placeholder="http://127.0.0.1:7860"/>

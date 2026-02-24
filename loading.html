@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AXIOM — Initializing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: #060610; color: #e8e8ff; font-family: 'Space Mono', monospace; user-select: none; -webkit-app-region: no-drag; }
+
+/* ── Drag region ── */
+#titlebar-drag { position: fixed; top: 0; left: 0; right: 0; height: 32px; -webkit-app-region: drag; z-index: 100; }
+.wc { position: fixed; top: 10px; right: 14px; display: flex; gap: 6px; z-index: 101; -webkit-app-region: no-drag; }
+.wc-btn { width: 12px; height: 12px; border-radius: 50%; border: none; cursor: pointer; }
+.wc-close { background: #ff5f56; }
+.wc-min   { background: #ffbd2e; }
+.wc-max   { background: #27c93f; }
+
+/* ── Background ── */
+.bg {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(30,40,120,0.35) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(79,40,140,0.2) 0%, transparent 60%),
+    #060610;
+}
+
+/* Animated grid */
+.grid {
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(rgba(79,138,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(79,138,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: gridDrift 20s linear infinite;
+}
+@keyframes gridDrift { from { transform: translateY(0); } to { transform: translateY(48px); } }
+
+/* Scan line */
+.scanline {
+  position: fixed; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  z-index: 1;
+}
+
+/* ── Layout ── */
+#root {
+  position: relative; z-index: 2;
+  height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 60px;
+  gap: 0;
+}
+
+/* ── Logo ── */
+.logo-wrap { text-align: center; margin-bottom: 48px; animation: fadeUp 0.6s ease-out; }
+.logo-icon {
+  width: 72px; height: 72px; border: 1px solid rgba(79,138,255,0.3);
+  border-radius: 18px; margin: 0 auto 20px;
+  display: grid; place-items: center;
+  box-shadow: 0 0 40px rgba(79,138,255,0.15), inset 0 0 30px rgba(79,138,255,0.05);
+  position: relative; overflow: hidden;
+}
+.logo-icon::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(79,138,255,0.1) 100%);
+  animation: shimmer 3s ease-in-out infinite;
+}
+@keyframes shimmer { 0%,100%{opacity:0} 50%{opacity:1} }
+.logo-glyph { font-size: 32px; position: relative; z-index: 1; }
+.logo-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; letter-spacing: 0.15em; color: #e8e8ff; }
+.logo-title span { color: #4f8aff; }
+.logo-sub { font-size: 11px; color: rgba(160,160,210,0.4); letter-spacing: 0.25em; margin-top: 6px; text-transform: uppercase; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ── Status line ── */
+.status-line {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 20px;
+  animation: fadeUp 0.6s 0.15s ease-out both;
+}
+.status-dot-lg {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #4f8aff; box-shadow: 0 0 10px #4f8aff;
+  animation: pulse 1s ease-in-out infinite;
+}
+.status-dot-lg.ready  { background: #3ecf8e; box-shadow: 0 0 10px #3ecf8e; animation: none; }
+.status-dot-lg.error  { background: #ff4f6a; box-shadow: 0 0 10px #ff4f6a; animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+
+#status-text { font-size: 12px; color: rgba(200,200,230,0.7); letter-spacing: 0.08em; }
+
+/* ── Progress bar ── */
+.progress-wrap {
+  width: 480px; max-width: 90vw;
+  height: 2px; background: rgba(79,138,255,0.1); border-radius: 99px;
+  margin-bottom: 28px;
+  animation: fadeUp 0.6s 0.2s ease-out both;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #4f8aff, #7b5ea7);
+  box-shadow: 0 0 8px #4f8aff;
+  transition: width 0.5s ease;
+  width: 0%;
+}
+/* Indeterminate shimmer when we don't have real % */
+.progress-fill.indeterminate {
+  width: 40% !important;
+  animation: indeterminate 1.8s ease-in-out infinite;
+}
+@keyframes indeterminate {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ── Log terminal ── */
+.log-wrap {
+  width: 560px; max-width: 92vw;
+  height: 180px;
+  background: rgba(6,6,16,0.8);
+  border: 1px solid rgba(79,138,255,0.1);
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow: hidden; position: relative;
+  animation: fadeUp 0.6s 0.3s ease-out both;
+}
+.log-header {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
+  color: rgba(79,138,255,0.6); text-transform: uppercase;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+}
+.log-header::after { content: ''; flex: 1; height: 1px; background: rgba(79,138,255,0.1); }
+#log-lines {
+  font-size: 10.5px; line-height: 1.7;
+  color: rgba(160,160,210,0.55);
+  height: 140px; overflow-y: auto;
+}
+#log-lines::-webkit-scrollbar { width: 3px; }
+#log-lines::-webkit-scrollbar-thumb { background: rgba(79,138,255,0.2); }
+.log-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; animation: logIn 0.15s ease-out; }
+.log-line.highlight { color: #4f8aff; }
+.log-line.success   { color: #3ecf8e; }
+.log-line.error-line { color: #ff4f6a; }
+@keyframes logIn { from { opacity: 0; transform: translateX(-4px); } to { opacity: 1; transform: translateX(0); } }
+
+/* ── Buttons ── */
+.btn-row {
+  display: flex; gap: 12px; margin-top: 28px;
+  animation: fadeUp 0.6s 0.4s ease-out both;
+}
+.btn {
+  border: none; border-radius: 8px; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700;
+  padding: 10px 22px; letter-spacing: 0.06em;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn:hover  { opacity: 0.85; }
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-primary {
+  background: linear-gradient(135deg, #4f8aff, #7b5ea7);
+  color: white;
+  box-shadow: 0 4px 20px rgba(79,138,255,0.3);
+}
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(79,138,255,0.2);
+  color: rgba(160,160,210,0.6);
+}
+.btn-ghost:hover { border-color: rgba(79,138,255,0.5); color: rgba(200,200,230,0.9); }
+
+/* ── Ready state overlay ── */
+#ready-flash {
+  position: fixed; inset: 0; background: rgba(62,207,142,0.06);
+  pointer-events: none; z-index: 10; opacity: 0;
+  transition: opacity 0.4s;
+}
+#ready-flash.show { opacity: 1; }
+
+/* ── Error panel ── */
+#error-panel {
+  display: none;
+  width: 560px; max-width: 92vw;
+  background: rgba(255,79,106,0.06);
+  border: 1px solid rgba(255,79,106,0.2);
+  border-radius: 10px; padding: 14px 16px; margin-top: 16px;
+  font-size: 11px; color: rgba(255,79,106,0.8); line-height: 1.6;
+  animation: fadeUp 0.2s ease-out;
+}
+#error-panel.show { display: block; }
+
+/* ── Skip mode (already running) ── */
+#already-running {
+  display: none; text-align: center;
+}
+#already-running.show { display: block; }
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="grid"></div>
+<div class="scanline"></div>
+
+<div id="titlebar-drag"></div>
+<div class="wc">
+  <button class="wc-btn wc-min"   onclick="window.api.window.minimize()"></button>
+  <button class="wc-btn wc-max"   onclick="window.api.window.maximize()"></button>
+  <button class="wc-btn wc-close" onclick="window.api.window.close()"></button>
+</div>
+
+<div id="root">
+  <div class="logo-wrap">
+    <div class="logo-icon"><span class="logo-glyph">🧠</span></div>
+    <div class="logo-title">AXI<span>OM</span></div>
+    <div class="logo-sub">Neural Agent · Initializing</div>
+  </div>
+
+  <div class="status-line">
+    <div class="status-dot-lg" id="status-dot"></div>
+    <span id="status-text">Starting Stable Diffusion WebUI…</span>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-fill indeterminate" id="progress-fill"></div>
+  </div>
+
+  <div class="log-wrap">
+    <div class="log-header">Boot Log</div>
+    <div id="log-lines"></div>
+  </div>
+
+  <div id="error-panel"></div>
+
+  <div class="btn-row">
+    <button class="btn btn-ghost" id="skip-btn" onclick="skipToApp()">Skip — Enter Anyway</button>
+    <button class="btn btn-primary hidden" id="enter-btn" onclick="enterApp()">Enter AXIOM →</button>
+  </div>
+</div>
+
+<div id="ready-flash"></div>
+
+<script>
+const logEl      = document.getElementById('log-lines');
+const statusDot  = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const progressEl = document.getElementById('progress-fill');
+const skipBtn    = document.getElementById('skip-btn');
+const enterBtn   = document.getElementById('enter-btn');
+const errorPanel = document.getElementById('error-panel');
+
+let isReady = false;
+let errorCount = 0;
+
+function addLog(line, type = '') {
+  const div = document.createElement('div');
+  div.className = 'log-line' + (type ? ' ' + type : '');
+
+  // Colour certain lines automatically
+  if (line.includes('Running on local URL') || line.includes('Startup time') || line.includes('Model loaded')) {
+    div.className = 'log-line success';
+  } else if (line.includes('Error') || line.includes('Traceback') || line.includes('RuntimeError')) {
+    div.className = 'log-line error-line';
+  } else if (line.includes('Loading') || line.includes('Launching') || line.includes('Creating')) {
+    div.className = 'log-line highlight';
+  }
+
+  div.textContent = '› ' + line;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+
+  // Keep max 80 lines to avoid memory bloat
+  while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
+}
+
+function setStatus(text, state = 'loading') {
+  statusText.textContent = text;
+  statusDot.className = 'status-dot-lg' + (state !== 'loading' ? ' ' + state : '');
+}
+
+function setProgress(pct) {
+  progressEl.classList.remove('indeterminate');
+  progressEl.style.width = pct + '%';
+}
+
+function onWebUIReady() {
+  isReady = true;
+  setStatus('WebUI ready — AXIOM online', 'ready');
+  setProgress(100);
+
+  // Green flash
+  const flash = document.getElementById('ready-flash');
+  flash.classList.add('show');
+  setTimeout(() => flash.classList.remove('show'), 800);
+
+  skipBtn.classList.add('hidden');
+  enterBtn.classList.remove('hidden');
+  enterBtn.style.animation = 'fadeUp 0.3s ease-out';
+
+  addLog('✓ WebUI online — ready to generate.', 'success');
+
+  // Auto-enter after 1.5s
+  setTimeout(() => enterApp(), 1500);
+}
+
+function onWebUIError(msg) {
+  errorCount++;
+  errorPanel.classList.add('show');
+  errorPanel.textContent = '⚠ ' + msg;
+  if (errorCount >= 3) {
+    setStatus('Errors detected — check A1111 console', 'error');
+  }
+}
+
+function onWebUIExited(code) {
+  if (!isReady) {
+    setStatus('WebUI process exited (code ' + code + ')', 'error');
+    addLog('Process exited with code ' + code, 'error-line');
+    errorPanel.classList.add('show');
+    errorPanel.textContent = '⚠ WebUI exited before becoming ready (code ' + code + '). Check your webui-user.bat path in Settings.';
+  }
+}
+
+function skipToApp() {
+  window.api.webui.removeAll();
+  window.location.href = 'index.html';
+}
+
+function enterApp() {
+  window.api.webui.removeAll();
+  window.location.href = 'index.html';
+}
+
+// ── Boot sequence ─────────────────────────────────────────────────────────────
+async function boot() {
+  const settings = await window.api.settings.get();
+
+  // Register event listeners BEFORE launching
+  window.api.webui.onLog(line => {
+    addLog(line);
+
+    // Heuristic progress from known A1111 log milestones
+    if (line.includes('prepare environment'))  setProgress(10);
+    if (line.includes('initialize shared'))    setProgress(20);
+    if (line.includes('list SD models'))       setProgress(30);
+    if (line.includes('load scripts'))         setProgress(40);
+    if (line.includes('create ui'))            setProgress(50);
+    if (line.includes('Loading weights'))      { setProgress(60); setStatus('Loading model weights…'); }
+    if (line.includes('Creating model'))       setProgress(70);
+    if (line.includes('apply weights'))        setProgress(80);
+    if (line.includes('load VAE'))             setProgress(85);
+    if (line.includes('gradio launch'))        setProgress(90);
+    if (line.includes('Running on local URL')) { setProgress(95); setStatus('WebUI is up, waiting for API…'); }
+    if (line.includes('add APIs'))             { setProgress(98); onWebUIReady(); }
+    if (line.includes('Startup time'))         onWebUIReady();
+  });
+
+  window.api.webui.onReady(() => onWebUIReady());
+  window.api.webui.onError(msg => onWebUIError(msg));
+  window.api.webui.onExited(code => onWebUIExited(code));
+
+  // Check if auto-launch is enabled
+  if (!settings.autoLaunchWebui) {
+    setStatus('Auto-launch disabled — entering directly', 'ready');
+    setProgress(100);
+    setTimeout(() => enterApp(), 800);
+    return;
+  }
+
+  // Check if webui bat exists
+  if (!settings.webuiBat) {
+    setStatus('No WebUI path set — check Settings', 'error');
+    addLog('webuiBat path is not configured in settings.', 'error-line');
+    errorPanel.classList.add('show');
+    errorPanel.textContent = '⚠ WebUI path not set. Go to Settings → A1111 Backend → WebUI .bat Path.';
+    return;
+  }
+
+  addLog('Launching: ' + settings.webuiBat);
+  setStatus('Spawning WebUI process…');
+
+  const result = await window.api.webui.launch();
+
+  if (result.error) {
+    setStatus('Launch failed', 'error');
+    addLog('ERROR: ' + result.error, 'error-line');
+    errorPanel.classList.add('show');
+    errorPanel.textContent = '⚠ ' + result.error;
+
+    // If already running, just enter
+    if (result.error.includes('already running')) {
+      setTimeout(() => {
+        setStatus('WebUI already running — entering', 'ready');
+        setProgress(100);
+        setTimeout(() => enterApp(), 800);
+      }, 500);
+    }
+    return;
+  }
+
+  addLog('Process started (PID ' + result.pid + ')');
+  setStatus('WebUI booting… this takes ~30s');
+}
+
+boot();
+</script>
+</body>
+</html>

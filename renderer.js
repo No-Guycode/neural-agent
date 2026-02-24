@@ -278,6 +278,8 @@ function populateSettings() {
   document.getElementById('s-a1111-url').value        = s.a1111Url || 'http://127.0.0.1:7860';
   document.getElementById('s-models-dir').value       = s.modelsDir || '';
   document.getElementById('s-output-dir').value       = s.outputDir || '';
+  document.getElementById('s-auto-launch').checked    = s.autoLaunchWebui !== false;
+  document.getElementById('s-webui-bat').value        = s.webuiBat || '';
   document.getElementById('s-encryption').checked     = !!s.encryptionEnabled;
   document.getElementById('s-enc-key-file').value     = s.encryptionKeyFile || '';
 
@@ -299,6 +301,8 @@ async function saveSettings() {
     openaiApiKey:      document.getElementById('s-api-key').value.trim(),
     openaiModel:       document.getElementById('s-model').value,
     systemPrompt:      document.getElementById('s-system-prompt').value,
+    autoLaunchWebui:   document.getElementById('s-auto-launch').checked,
+    webuiBat:          document.getElementById('s-webui-bat').value.trim(),
     a1111Url:          document.getElementById('s-a1111-url').value.trim().replace(/\/$/, ''),
     modelsDir:         document.getElementById('s-models-dir').value.trim(),
     outputDir:         document.getElementById('s-output-dir').value.trim(),
