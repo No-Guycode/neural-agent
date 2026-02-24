@@ -1,73 +1,132 @@
-# 🧠 Neural Agent
+# AXIOM — Neural Agent
 
-A sleek Electron-based AI agent that routes your prompts to either **text** (via OpenAI) or **image generation** (via A1111 WebUI), with deep integration for your custom Encrypted Gallery extension.
+A sharp, no-bullshit AI agent that lives on your desktop. Talk to it. It figures out whether you need a text answer or a generated image, picks the right model, refines the prompt into proper booru tags, and fires it at Stable Diffusion — all automatically.
 
----
-
-## ✨ Features
-
-- **Intelligent routing** — GPT decides automatically whether you need text or an image
-- **A1111 integration** — Scans your `.safetensors` models, reads `.txt` notes, AI-picks the best one
-- **LoRA support** — Optional LoRA tag + trigger word dialog before each generation
-- **Prompt refinement** — AI refines your prompt using model notes before sending to A1111
-- **Hires. Fix** — Enabled by default (Lanczos, 15 steps, 2× scale)
-- **Encrypted Gallery** — Reads your encrypted output directory, compatible with your A1111 extension
-- **Context memory** — Full conversation history sent with each request
-- **Persistent settings** — Saved to `%AppData%/neural-agent/settings.json`
-- **Thought process display** — See every step the agent takes in real time
-- **Progress bar** — Live A1111 generation progress with ETA
+Built with Electron + Groq (free) + A1111 WebUI backend.
 
 ---
 
-## 📁 Project Structure
+## What it does
+
+- **Routes automatically** — you just talk. AXIOM decides if you need text or an image.
+- **Picks the best model** — scans your `.safetensors` files, reads their `.txt` notes, asks the LLM to choose the right one for your prompt.
+- **Writes proper SD prompts** — converts your natural language into ordered booru-style tags automatically.
+- **LoRA support** — optional LoRA tag + trigger words dialog before each generation.
+- **Refines prompts per model** — uses each model's notes to tune the positive and negative prompts.
+- **Live generation progress** — progress bar with ETA while A1111 generates.
+- **Auto-launches WebUI** — cinematic boot screen streams A1111's log live, enters the app once it's ready.
+- **Context memory** — full conversation history sent with each request, clearable anytime.
+- **Encrypted gallery** — reads your output directory, compatible with the encrypted-gallery A1111 extension.
+- **Persistent settings** — everything saves automatically across sessions.
+
+---
+
+## Stack
+
+| Layer | What |
+|---|---|
+| Frontend | Electron (frameless, dark) |
+| LLM | Groq API — Llama 3.3 70B Versatile (free) |
+| Image gen | Stable Diffusion via A1111 WebUI REST API |
+| GPU | AMD via DirectML (your setup) |
+| Encryption | Compatible with your custom A1111 encrypted-gallery extension |
+
+---
+
+## Project structure
 
 ```
 neural-agent/
-├── main.js          ← Electron main process (IPC, file system, API calls)
-├── preload.js       ← Secure context bridge
-├── index.html       ← UI shell + styles
-├── renderer.js      ← UI logic, agent orchestration
+├── main.js          — Electron main process. IPC, file system, API calls, WebUI spawning.
+├── preload.js       — Secure context bridge between main and renderer.
+├── loading.html     — Boot screen. Launches WebUI, streams log, waits for ready signal.
+├── index.html       — Main app UI. Chat, settings, gallery, image viewer.
+├── renderer.js      — All agent logic. Routing, model selection, generation pipeline.
 ├── package.json
-└── README.md
+├── SETUP_GUIDE.md
+└── model-notes/     — Drop these .txt files next to your .safetensors models.
+    ├── anyniji.txt
+    ├── cetusMix.txt
+    ├── dark.txt
+    ├── flat.txt
+    ├── hassakuSD15_v13.txt
+    ├── meinamix.txt
+    ├── Pastel.txt
+    ├── Realistic.txt
+    └── sudachi.txt
 ```
 
 ---
 
-## 🚀 Setup
+## Setup
 
-### Prerequisites
+See **SETUP_GUIDE.md** for the full step-by-step Windows walkthrough.
 
-- [Node.js](https://nodejs.org/) v18+
-- [Electron](https://www.electronjs.org/) (installed via npm)
-- A1111 WebUI running locally (`http://127.0.0.1:7860` by default)
-- OpenAI API key
-
-### Install
+Short version:
 
 ```bash
-cd neural-agent
+# 1. Install Node.js LTS from nodejs.org
+
+# 2. Drop all project files into a folder, e.g. D:\Projects\neural-agent\
+
+# 3. Install dependencies
+cd D:\Projects\neural-agent
 npm install
+
+# 4. Get a free Groq API key at console.groq.com
+#    Paste it into Settings on first launch
+
+# 5. Add --api and --nowebui to your A1111 webui-user.bat:
+#    set COMMANDLINE_ARGS=--opt-sub-quad-attention --disable-nan-check --use-directml --lowvram --api --nowebui
+
+# 6. Run
 npm start
 ```
 
 ---
 
-## ⚙️ Settings
+## Model notes
 
-Open the app → **Settings panel** (right side)
+For AXIOM to use a model it needs a `.txt` notes file with the same name sitting next to the `.safetensors` in your models directory.
 
-| Setting | Description |
-|---|---|
-| **API Key** | Your OpenAI key (`sk-…`) |
-| **Model** | GPT-4o, GPT-4 Turbo, o3, o4-mini, etc. |
-| **System Prompt** | Controls how the LLM decides text vs. image |
-| **A1111 URL** | Default: `http://127.0.0.1:7860` |
-| **Models Dir** | `F:/AI/A1111/stable-diffusion-webui-amdgpu/models/Stable-diffusion` |
-| **Output Dir** | Where images are saved (and encrypted gallery reads from) |
-| **Encryption** | Toggle to match your A1111 extension setting |
-| **Key File** | Path to `.encryption_key` used by your A1111 extension |
+```
+Stable-diffusion/
+  meinamix.safetensors
+  meinamix.txt          ← required
+  dark.safetensors
+  dark.txt              ← required
+```
 
-### Image Params (second tab)
+Models without a `.txt` are invisible to AXIOM. The notes tell the LLM what each model is good at so it can pick intelligently. Copy the files from the `model-notes/` folder in this repo into your models directory.
+
+**Example notes file:**
+```
+Model name: Dark Sushi Mix 2.25D
+Type: Anime / semi-realistic — dark, cinematic, moody
+Best for: night scenes, dramatic lighting, neon, urban environments
+Recommended CFG: 7-8
+Recommended sampler: DPM++ SDE Karras
+Trigger words: masterpiece, best quality, cinematic lighting, dramatic shadows
+Negative: (worst quality:1.2), flat lighting, overexposed, watermark
+```
+
+---
+
+## Settings reference
+
+| Setting | Default | Notes |
+|---|---|---|
+| Groq API Key | — | From console.groq.com, free |
+| Model | llama-3.3-70b-versatile | Best free model on Groq |
+| Auto-launch WebUI | On | Spawns webui-user.bat on startup |
+| WebUI .bat Path | — | Full path to your webui-user.bat |
+| WebUI URL | http://127.0.0.1:7860 | Don't change unless you moved the port |
+| Models Dir | F:/AI/A1111/.../Stable-diffusion | Where your .safetensors live |
+| Output Dir | F:/AI/OwnAI/generated | Where generated images are saved |
+| Encryption | On | Matches your A1111 extension setting |
+| Key File | F:/AI/OwnAI/generated/.encryption_key | Shared with the A1111 extension |
+
+**Image params (second tab):**
 
 | Param | Default |
 |---|---|
@@ -75,7 +134,7 @@ Open the app → **Settings panel** (right side)
 | Steps | 30 |
 | CFG Scale | 7 |
 | Sampler | DPM++ 2M Karras |
-| Hires. Fix | ✅ On |
+| Hires. Fix | On |
 | Upscaler | Lanczos |
 | Hires Steps | 15 |
 | Denoising | 0.45 |
@@ -83,107 +142,79 @@ Open the app → **Settings panel** (right side)
 
 ---
 
-## 🤖 How It Works
+## How generation works
 
 ```
-User prompt
-    │
-    ▼
-OpenAI LLM (with system prompt + memory context)
-    │
-    ├─ type: "text"  → Response displayed in chat
-    │
-    └─ type: "image" → imagePrompt extracted
-           │
-           ▼
-       Scan models dir for .safetensors + .txt pairs
-           │
-           ▼
-       OpenAI picks best model based on notes + prompt
-           │
-           ▼
-       Load model in A1111 (via /sdapi/v1/options)
-           │
-           ▼
-       Show LoRA dialog (tag + trigger words, optional)
-           │
-           ▼
-       OpenAI refines prompt using model notes
-           │
-           ▼
-       POST /sdapi/v1/txt2img with full params
-           │
-           ▼
-       Live progress bar (polls /sdapi/v1/progress)
-           │
-           ▼
-       Image displayed + saved to output dir
+You type a prompt
+        │
+        ▼
+Groq/Llama decides: text or image?
+        │
+        ├── TEXT → answer displayed in chat
+        │
+        └── IMAGE
+                │
+                ▼
+        Scan models dir for .safetensors + .txt pairs
+                │
+                ▼
+        Groq picks the best model based on notes + your prompt
+                │
+                ▼
+        Load model in A1111 via API
+                │
+                ▼
+        LoRA dialog — add tag + trigger words, or skip
+                │
+                ▼
+        Groq refines prompt into booru tags using model notes
+        (subject → clothing → pose → setting → lighting → quality tags)
+                │
+                ▼
+        POST to A1111 /sdapi/v1/txt2img
+                │
+                ▼
+        Live progress bar (polls /sdapi/v1/progress every second)
+                │
+                ▼
+        Image displayed in chat + saved to output dir
 ```
 
 ---
 
-## 🔒 Encrypted Gallery Integration
+## AXIOM's personality
 
-The app is designed to work alongside your `encrypted_gallery` A1111 extension:
+Sharp. Direct. No filler. Occasionally sarcastic. Swears when it feels right. Has opinions and shares them. Routes to image generation without fanfare — just one line and it's already working.
 
-- The **Output Dir** setting should match `CONFIG["custom_output_dir"]` in your extension
-- The **Key File** setting should match `CONFIG["key_file"]`
-- The Gallery view in the app shows all `.encrypted` files in the output dir
-- Actual decryption/viewing of gallery images still happens in A1111's WebUI (the extension handles Fernet decryption)
-- Generated images from the agent go to the same folder, where A1111 auto-encrypts them on save via the extension hook
+To change the personality, edit the System Prompt field in Settings.
 
 ---
 
-## 📂 Model Notes Format
+## Known issues & fixes
 
-For the AI model selector to work, each `.safetensors` model needs a matching `.txt` file in the same directory:
-
-```
-F:/AI/OwnAI/models/
-  meinamix.safetensors
-  meinamix.txt          ← Model notes
-  realisticVision.safetensors
-  realisticVision.txt
-```
-
-**Example `meinamix.txt`:**
-```
-MeinaMix v12 - Anime/semi-realistic hybrid
-Best for: anime characters, stylized portraits, fantasy scenes
-Recommended CFG: 6-8
-Recommended steps: 25-35
-Trigger words: (masterpiece), best quality, ultra detailed
-Negative: (worst quality:1.4), bad anatomy, watermark
-Notes: Works well with Euler a sampler. Good LoRA compatibility.
-```
-
-Models without a `.txt` file are **ignored** by the agent.
-
----
-
-## 🔧 Troubleshooting
-
-| Problem | Fix |
+| Issue | Fix |
 |---|---|
-| A1111 shows Offline | Start WebUI with `--api` flag: `python launch.py --api` |
-| Model not found in A1111 | Ensure the model filename in your models dir matches what A1111 sees |
-| OpenAI error: no key | Add API key in Settings |
-| Generation fails | Check A1111 console for errors; try simpler prompt |
-| Images not encrypting | Your A1111 extension handles this — make sure it's active |
-| Fonts not loading | App requires internet connection on first launch for Google Fonts |
+| A1111 shows Offline | Make sure `--api` is in your COMMANDLINE_ARGS and A1111 has fully loaded |
+| `unrecognized arguments: --no-browser` | Your AMD fork doesn't support it — use `--nowebui` instead |
+| FastAPI middleware error | Run: `venv\Scripts\pip.exe install fastapi==0.100.0 starlette==0.27.0` |
+| Git dubious ownership error | Run: `git config --global --add safe.directory *` |
+| No models found | Create `.txt` notes files next to each `.safetensors` |
+| Black images | Add `--no-half-vae` to your A1111 COMMANDLINE_ARGS |
+| Generation very slow | Normal for AMD/DirectML — no fix, just patience |
+| Groq API error | Check your key at console.groq.com — free tier has daily limits but they're generous |
 
 ---
 
-## 🛠 Development
+## Development
 
 ```bash
-npm run dev    # Opens with DevTools
+npm run dev    # Opens with DevTools console visible
 ```
 
-All OpenAI API calls happen in `main.js` (secure, key never exposed to renderer).
+All Groq API calls happen in `main.js` — the API key never touches the renderer process.
 
 ---
 
-## 📜 License
+## License
 
-MIT
+MIT. Do whatever you want with it.
