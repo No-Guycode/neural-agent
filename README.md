@@ -16,7 +16,6 @@ Built with Electron + Groq (free) + A1111 WebUI backend.
 - **Live generation progress** — progress bar with ETA while A1111 generates.
 - **Auto-launches WebUI** — cinematic boot screen streams A1111's log live, enters the app once it's ready.
 - **Context memory** — full conversation history sent with each request, clearable anytime.
-- **Encrypted gallery** — reads your output directory, compatible with the encrypted-gallery A1111 extension.
 - **Persistent settings** — everything saves automatically across sessions.
 
 ---
