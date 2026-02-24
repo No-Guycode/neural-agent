@@ -101,6 +101,17 @@ function autoResizeTextarea() {
 
 function scrollMessages() {
   const el = document.getElementById('messages');
+  // Only auto-scroll if user is already near the bottom (within 120px)
+  // If they've scrolled up to read, don't yank them back down
+  const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+  if (distanceFromBottom < 120) {
+    el.scrollTop = el.scrollHeight;
+  }
+}
+
+function scrollToBottom() {
+  // Force scroll — used only when user sends a new message
+  const el = document.getElementById('messages');
   el.scrollTop = el.scrollHeight;
 }
 
@@ -419,12 +430,30 @@ function closeModal(apply) {
 }
 
 // ── Image Generation Pipeline ─────────────────────────────────────────────────
-async function generateImage(rawPrompt) {
+async function generateImage(rawPrompt, chatParams = {}, requestedModel = null) {
   const thoughtDiv = appendThoughtBubble([]);
   const thoughtContainer = thoughtDiv;
 
-  // Step 1: Select model
-  const model = await selectBestModel(rawPrompt, thoughtContainer);
+  // Step 1: Select model — use user-specified model if provided, otherwise AI picks
+  let model;
+  if (requestedModel) {
+    const stepForced = addThoughtStep(thoughtContainer, 1, `User requested model: "${requestedModel}" — loading directly…`);
+    const { models } = await window.api.models.scan();
+    const found = (models || []).find(m =>
+      m.baseName.toLowerCase() === requestedModel.toLowerCase() ||
+      m.baseName.toLowerCase().includes(requestedModel.toLowerCase())
+    );
+    if (found) {
+      model = found;
+      updateStep(stepForced, `Using requested model: ${found.baseName}`, 'done');
+    } else {
+      updateStep(stepForced, `Model "${requestedModel}" not found — falling back to AI selection`, 'error');
+      model = await selectBestModel(rawPrompt, thoughtContainer);
+    }
+  } else {
+    model = await selectBestModel(rawPrompt, thoughtContainer);
+  }
+
   if (!model) {
     removeTyping();
     appendBubble('assistant', '⚠️ No suitable model found. Check your models directory in settings.');
@@ -502,10 +531,19 @@ BOORU TAG RULES — follow these exactly:
   const genStep = addThoughtStep(thoughtContainer, 6, 'Sending to A1111 for generation…');
 
   const params = State.settings.imageParams || {};
+
+  // Chat-specified params override settings defaults
+  // Show what's being overridden in the thought bubble
+  const overrides = Object.keys(chatParams);
+  if (overrides.length > 0) {
+    addThoughtStep(thoughtContainer, 7, `Chat overrides: ${overrides.map(k => k + '=' + chatParams[k]).join(', ')}`, 'done');
+  }
+
   const payload = {
     prompt: positivePrompt,
     negative_prompt: negativePrompt,
-    ...params,
+    ...params,       // settings defaults
+    ...chatParams,   // chat params WIN — override everything
   };
 
   appendProgressBar();
@@ -571,8 +609,9 @@ async function sendMessage() {
   setProcessing(true);
   clearWelcome();
 
-  // Display user message
+  // Display user message — force scroll to bottom on new send
   appendBubble('user', userText);
+  scrollToBottom();
   State.memory.push({ role: 'user', content: userText, _display: userText });
   renderMemory();
 
@@ -619,6 +658,9 @@ async function sendMessage() {
 
     if (decision.type === 'image') {
       const imgPrompt = decision.imagePrompt || userText;
+      const chatParams = decision.params || {};
+      const chatModel = decision.model || null; // null = auto-pick
+      const requestedModel = decision.model || null;
 
       // Check A1111 is online
       const online = await pingA1111();
@@ -636,7 +678,7 @@ async function sendMessage() {
       appendBubble('assistant', `🎨 Generating image: "${imgPrompt}"…`);
       renderMemory();
 
-      await generateImage(imgPrompt);
+      await generateImage(imgPrompt, chatParams, requestedModel);
 
     } else {
       // Text response

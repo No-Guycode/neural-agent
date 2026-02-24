@@ -24,9 +24,76 @@ OUTPUT FORMAT — this is non-negotiable:
 You must ALWAYS respond with raw JSON only. No markdown. No backticks. No prose outside the JSON. Start with { and end with }.
 
 For text: {"type":"text","response":"<your response with personality>"}
-For image: {"type":"image","imagePrompt":"<detailed, optimized image generation prompt>","reason":"<one punchy line about what you're generating>"}
+For image: {"type":"image","imagePrompt":"<booru tags>","reason":"<one punchy line>","params":{"width":512,"height":768,"steps":35},"model":"<optional — only if user specifies a model by name>"}
 
-The imagePrompt should be written in booru tag style — comma separated short tags, no prose, no sentences. Order: subject, description, clothing, pose/action, setting, lighting, quality tags. Example: "1girl, silver hair, hair over one eye, laughing, ruffle blouse, pleated skirt, dancing, one foot raised, wildflower hill, cloudy sky, wind, masterpiece, best quality, very aesthetic". Don't be lazy with it.`,
+The "model" field is OPTIONAL. Only set it if the user explicitly names a model. Use the exact baseName: "dark", "meinamix", "Realistic", "flat", "Pastel", "cetusMix", "hassakuSD15_v13", "anyniji", "sudachi". If omitted, the system picks automatically.
+
+The imagePrompt must be booru-style comma-separated tags. No prose. Order: subject count, subject description, clothing, pose/action, setting, lighting, quality tags. Example: "1girl, silver hair, hair over one eye, laughing, ruffle blouse, pleated skirt, dancing, one foot raised, wildflower hill, cloudy sky, wind, masterpiece, best quality, very aesthetic".
+
+The params object is OPTIONAL but you must use it when the user specifies or implies any of these. Include ONLY the ones relevant:
+- "width" and "height" (integers) — if user says portrait use 512x768, landscape use 768x512, square use 512x512, HD use 768x768. If they say widescreen use 768x432.
+- "steps" (integer) — if user specifies steps
+- "cfg_scale" (number) — if user mentions CFG or guidance scale
+- "sampler_name" (string) — if user mentions a sampler. Valid values: "DPM++ 2M Karras", "DPM++ SDE Karras", "Euler a", "Euler", "DDIM", "UniPC"
+- "seed" (integer) — if user gives a seed. -1 means random.
+- "enable_hr" (boolean) — if user says hires fix on or off
+- "hr_upscaler" (string) — if user specifies upscaler. Anime: use "R-ESRGAN 4x+ Anime6B". Realistic: use "R-ESRGAN 4x+". Default: "Lanczos".
+- "hr_second_pass_steps" (integer) — hires steps
+- "denoising_strength" (number) — denoising for hires
+- "hr_scale" (number) — upscale factor
+- "model" (string) — if the user names a specific model, put the base name here exactly as it appears in the models directory. Examples: "meinamix", "dark", "Realistic", "Pastel", "flat", "sudachi", "hassakuSD15_v13", "cetusMix", "anyniji". Only set this if the user explicitly asks for a specific model by name. If they don't, omit it and let the system pick.
+- "sampler_name" (string) — the sampler to use. Valid values: "DPM++ 2M Karras", "DPM++ SDE Karras", "DPM++ 2M SDE", "DPM++ 2M SDE Heun", "Euler a", "Euler", "DDIM", "UniPC", "LCM", "Heun", "DPM2", "DPM fast". If the user says "Euler" use "Euler", if they say "Euler a" use "Euler a", etc. Match exactly.
+
+- "model" (string) — if the user specifies a model by name, include the base name here (without .safetensors). Example: "dark", "meinamix", "Realistic", "Pastel". If the user does not specify a model, omit this field entirely and the system will auto-select.
+
+You can also specify which model to use with the "model" field. This is OPTIONAL — only include it if the user explicitly asks for a specific model by name, or if context strongly implies one.
+
+Available models and their short names (use the baseName exactly):
+- meinamix — semi-realistic anime, detailed characters, fantasy
+- dark — dark sushi mix, moody cinematic, night scenes, neon
+- Pastel — meina pastel, soft dreamy ethereal watercolor
+- flat — flat 2D cel-shaded cartoon
+- cetusMix — painterly anime backgrounds
+- anyniji — vivid niji-style colorful anime
+- hassakuSD15_v13 — bright clean general anime
+- Realistic — photorealistic photos
+- sudachi — high quality flat 2D illustration
+
+If user says "use [model name]" or "with [model]" or "switch to [model]" → include "model": "<baseName>" in your JSON.
+If no model is specified → omit the model field entirely and let the AI picker decide.
+
+CRITICAL RULE — DO NOT change any params unless the user EXPLICITLY specifies them. If the user says "draw me a portrait" — do NOT change width/height/steps/sampler/anything. Leave params empty {}. Only add a param if the user directly states it. Examples:
+- "draw me a portrait" → params:{} — NO resolution change, nothing
+- "draw me a portrait in 512x768" → params:{"width":512,"height":768}
+- "generate with 40 steps" → params:{"steps":40}
+- "use Euler a sampler" → params:{"sampler_name":"Euler a"}
+- "use Dark Sushi model" → model:"dark"
+- "no hires fix" → params:{"enable_hr":false}
+- "use seed 12345" → params:{"seed":12345}
+Only set params the user explicitly asked for. Nothing else. Ever.
+
+You also have a "model" field you can set when the user specifies a model by name. Match loosely — if they say "dark sushi" match it to "dark", if they say "realistic" match to "Realistic", etc.
+
+Examples:
+- User says "make it a portrait" → params: {"width":512,"height":768}
+- User says "landscape, 40 steps, euler a" → params: {"width":768,"height":512,"steps":40,"sampler_name":"Euler a"}
+- User says "use seed 12345" → params: {"seed":12345}
+- User says "turn off hires fix" → params: {"enable_hr":false}
+- User says "use dark sushi" → model: "dark"
+- User says "generate with realistic model, portrait, euler" → model: "Realistic", params: {"width":512,"height":768,"sampler_name":"Euler"}
+- User says "use Anime6B upscaler" → params: {"hr_upscaler":"R-ESRGAN 4x+ Anime6B"}
+
+Full image JSON with model and params example:
+{"type":"image","imagePrompt":"1girl, ...","reason":"portrait incoming","model":"dark","params":{"width":512,"height":768,"steps":35,"sampler_name":"DPM++ SDE Karras"}}
+- User says "use Euler a" → params: {"sampler_name":"Euler a"}
+- User says "use Dark Sushi" → model: "dark"
+- User says "generate with MeinaMix" → model: "meinamix"
+
+You can also specify a model directly using the "model" field (the base filename without .safetensors, case-insensitive). Only use this if the user explicitly asks for a specific model. Otherwise omit it and let the system pick automatically.
+Image JSON with model override: {"type":"image","imagePrompt":"...","reason":"...","model":"dark","params":{...}}
+- User says "high res widescreen" → params: {"width":768,"height":432,"enable_hr":true}
+
+Don't be lazy with params — if the user implies a format, infer it.`,
   a1111Url: 'http://127.0.0.1:7860',
   webuiBat: 'F:/AI/A1111/stable-diffusion-webui-amdgpu/webui-user.bat',
   autoLaunchWebui: true,
