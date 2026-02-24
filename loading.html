@@ -406,6 +406,38 @@ async function boot() {
 
   addLog('Process started (PID ' + result.pid + ')');
   setStatus('WebUI booting… this takes ~30s');
+
+  // Fallback: even if we miss the log line, poll the API directly
+  // This catches cases where log detection fails
+  pollUntilReady();
+}
+
+async function pollUntilReady() {
+  if (isReady) return;
+  let attempts = 0;
+  const max = 120; // 2 minutes max
+
+  const interval = setInterval(async () => {
+    if (isReady) { clearInterval(interval); return; }
+    attempts++;
+    if (attempts > max) {
+      clearInterval(interval);
+      if (!isReady) {
+        setStatus('Timed out waiting for WebUI', 'error');
+        errorPanel.classList.add('show');
+        errorPanel.textContent = '⚠ WebUI took too long to start. Try clicking Skip and check A1111 manually.';
+      }
+      return;
+    }
+
+    try {
+      const result = await window.api.a1111.ping();
+      if (result.online && !isReady) {
+        clearInterval(interval);
+        onWebUIReady();
+      }
+    } catch (e) { /* still booting */ }
+  }, 1000); // poll every second
 }
 
 boot();
