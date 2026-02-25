@@ -74,8 +74,8 @@ It runs on **Groq** (free, no credit card, no expiring credits) for the LLM and 
 
 ```bash
 # 1. Clone
-git clone https://github.com/No-Guycode/axiom-neural-agent
-cd axiom-neural-agent
+git clone https://github.com/No-Guycode/neural-agent
+cd neural-agent
 
 # 2. Install
 npm install
@@ -153,7 +153,7 @@ AXIOM uses your Settings defaults unless you explicitly tell it otherwise.
 | `draw me an anime girl` | Uses default params from Settings |
 | `draw me a portrait at 512x768` | Overrides width + height only |
 | `generate with 40 steps, Euler a` | Overrides steps + sampler only |
-| `use dark sushi model` | Skips AI selection, loads `dark` directly |
+| `use dark sushi model` | Skips AI selection, loads `darksushi` directly |
 | `seed 12345` | Uses that seed |
 | `no hires fix` | Disables hires upscale |
 | `use R-ESRGAN 4x+ Anime6B` | Overrides upscaler only |
@@ -188,18 +188,7 @@ axiom-neural-agent/
 ├── renderer.js      — All agent logic: routing, model selection, generation pipeline
 ├── package.json
 ├── .gitignore
-├── README.md
-├── SETUP_GUIDE.md
-└── model-notes/     — Copy these .txt files next to your .safetensors
-    ├── anyniji.txt
-    ├── cetusMix.txt
-    ├── dark.txt
-    ├── flat.txt
-    ├── hassakuSD15_v13.txt
-    ├── meinamix.txt
-    ├── Pastel.txt
-    ├── Realistic.txt
-    └── sudachi.txt
+ ── README.md
 ```
 
 <br/>
