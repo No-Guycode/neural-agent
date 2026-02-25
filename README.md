@@ -28,11 +28,7 @@ AXIOM is a desktop AI agent that routes your requests automatically — you talk
 
 It runs on **Groq** (free, no credit card, no expiring credits) for the LLM and your local **A1111 WebUI** for image generation. It has an opinion. It will tell you when your prompt is vague. It occasionally swears.
 
-<br/>
 
-## Screenshots
-
-> *(Add your own — the app is dark, minimal, and looks good in screenshots)*
 
 <br/>
 
@@ -78,7 +74,7 @@ It runs on **Groq** (free, no credit card, no expiring credits) for the LLM and 
 
 ```bash
 # 1. Clone
-git clone https://github.com/yourusername/axiom-neural-agent
+git clone https://github.com/No-Guycode/axiom-neural-agent
 cd axiom-neural-agent
 
 # 2. Install
@@ -145,7 +141,6 @@ Negative: (worst quality, low quality:1.4), zombie, interlocked fingers
 
 The more descriptive the notes, the better AXIOM's model selection gets. Models without a `.txt` are invisible to AXIOM.
 
-Pre-written notes for 9 popular models are included in the [`model-notes/`](model-notes/) folder.
 
 <br/>
 
