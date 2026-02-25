@@ -588,8 +588,80 @@ BOORU TAG RULES — follow these exactly:
   });
   renderMemory();
 
-  appendBubble('assistant', dataUrl, true);
+  appendImageBubble(dataUrl, payload, filename);
   toast('Image generated and saved!', 'success');
+}
+
+function appendImageBubble(dataUrl, params, filename) {
+  clearWelcome();
+  const msgs = document.getElementById('messages');
+  const id = 'params-' + Date.now();
+
+  // Build a readable params summary
+  const paramLabels = {
+    width: 'W', height: 'H', steps: 'Steps', cfg_scale: 'CFG',
+    sampler_name: 'Sampler', seed: 'Seed', enable_hr: 'Hires',
+    hr_upscaler: 'Upscaler', hr_scale: 'HR Scale',
+    hr_second_pass_steps: 'HR Steps', denoising_strength: 'Denoise'
+  };
+  const displayParams = Object.entries(params)
+    .filter(([k]) => k !== 'prompt' && k !== 'negative_prompt')
+    .map(([k, v]) => {
+      const label = paramLabels[k] || k;
+      if (k === 'enable_hr') return `${label}: ${v ? 'ON' : 'OFF'}`;
+      if (k === 'width' || k === 'height') return null; // combine below
+      return `${label}: ${v}`;
+    })
+    .filter(Boolean);
+
+  // Add resolution as combined W×H
+  if (params.width && params.height) displayParams.unshift(`${params.width}×${params.height}`);
+
+  const paramHTML = displayParams.map(p =>
+    `<span class="param-chip">${p}</span>`
+  ).join('');
+
+  const negPrompt = params.negative_prompt || '';
+  const posPrompt = params.prompt || '';
+
+  const div = document.createElement('div');
+  div.className = 'msg assistant';
+  div.style.animation = 'msgIn 0.25s ease-out';
+  div.innerHTML = `
+    <div class="msg-avatar">🤖</div>
+    <div class="msg-body" style="max-width:80%">
+      <div class="msg-bubble" style="padding:8px;background:var(--bg-card)">
+        <img class="msg-image" src="${dataUrl}" onclick="openImageViewer('${dataUrl}')" alt="Generated image" style="cursor:zoom-in"/>
+        <div class="img-params-toggle" onclick="toggleParamsPanel('${id}')" title="Click to see generation params">
+          <span class="params-toggle-icon">⚙</span>
+          <span style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono)">params</span>
+          <div class="param-chips-preview">${paramHTML}</div>
+        </div>
+        <div class="img-params-panel hidden" id="${id}">
+          <div class="params-section-label">POSITIVE PROMPT</div>
+          <div class="params-prompt-text">${sanitizeHtml(posPrompt)}</div>
+          <div class="params-section-label" style="margin-top:8px">NEGATIVE PROMPT</div>
+          <div class="params-prompt-text">${sanitizeHtml(negPrompt)}</div>
+          <div class="params-section-label" style="margin-top:8px">PARAMETERS</div>
+          <div class="params-grid">
+            ${Object.entries(params)
+              .filter(([k]) => !['prompt','negative_prompt'].includes(k))
+              .map(([k,v]) => `<div class="params-kv"><span class="params-key">${paramLabels[k]||k}</span><span class="params-val">${k==='enable_hr'?(v?'ON':'OFF'):v}</span></div>`)
+              .join('')}
+          </div>
+          <div style="font-size:9.5px;color:var(--text-dim);font-family:var(--font-mono);margin-top:8px;">${filename}</div>
+        </div>
+      </div>
+    </div>`;
+
+  msgs.appendChild(div);
+  scrollMessages();
+}
+
+function toggleParamsPanel(id) {
+  const panel = document.getElementById(id);
+  if (panel) panel.classList.toggle('hidden');
+  scrollMessages();
 }
 
 // ── Main Agent ────────────────────────────────────────────────────────────────
