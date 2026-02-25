@@ -1,20 +1,31 @@
 {
-  "name": "neural-agent",
+  "name": "axiom-neural-agent",
   "version": "1.0.0",
-  "description": "AI Agent with A1111 & OpenAI integration",
+  "description": "A sharp AI agent that routes between text and image generation. Powered by Groq (free) + Stable Diffusion A1111.",
   "main": "main.js",
+  "homepage": "https://github.com/yourusername/axiom-neural-agent",
   "scripts": {
     "start": "electron .",
-    "dev": "electron . --dev"
+    "dev":   "electron . --dev"
   },
+  "keywords": [
+    "ai",
+    "stable-diffusion",
+    "groq",
+    "llama",
+    "electron",
+    "image-generation",
+    "a1111"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "electron-store": "^8.1.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "electron": "^28.0.0"
   },
-  "keywords": [],
-  "author": "",
-  "license": "MIT"
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+
+# Electron build output
+dist/
+out/
+build/
+
+# User data — settings contain API keys, never commit these
+*.json.bak
+settings.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Generated images — these can be large, don't commit
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.encrypted
+
+# Python venv (if A1111 is in the same repo)
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+.env.local
+.env.*
+
+# Electron builder
+.webpack/
