@@ -464,6 +464,26 @@ ipcMain.handle('a1111:progress', async () => {
   }
 });
 
+ipcMain.handle('a1111:interrupt', async () => {
+  try {
+    const res = await a1111Fetch('/sdapi/v1/interrupt', { method: 'POST', timeout: 5000 });
+    return { ok: res.ok };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('a1111:currentModel', async () => {
+  try {
+    const res  = await a1111Fetch('/sdapi/v1/options', { timeout: 5000 });
+    if (!res.ok) return { model: null };
+    const data = await res.json();
+    return { model: data.sd_model_checkpoint ?? null };
+  } catch (_) {
+    return { model: null };
+  }
+});
+
 // ── IPC: Groq Chat ────────────────────────────────────────────────────────────
 async function groqChat(messages) {
   const fetch  = require('node-fetch');

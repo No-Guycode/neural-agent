@@ -17,6 +17,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     State.settings = await window.api.settings.get();
     populateSettings();
     await pingA1111();
+    await refreshLoadedModel();
     renderChatOrWelcome();
     initTextarea();
   } catch (e) {
@@ -71,6 +72,27 @@ function setA1111Status(online) {
   $('a1111-dot').className = `status-dot ${online ? 'online' : 'offline'}`;
 }
 
+function updateLoadedModelPill(name) {
+  const pill = $('loaded-model-pill');
+  const label = $('loaded-model-name');
+  if (!pill || !label) return;
+  if (name) {
+    label.textContent = name;
+    pill.classList.remove('hidden');
+  } else {
+    pill.classList.add('hidden');
+  }
+}
+
+async function refreshLoadedModel() {
+  const res = await window.api.a1111.currentModel();
+  if (res.model) {
+    // Extract just the filename without path
+    const name = res.model.split(/[\/]/).pop().replace(/\.[^.]+$/, '');
+    updateLoadedModelPill(name);
+  }
+}
+
 function updateTokenCounter(usage) {
   if (!usage) return;
   const el = $('token-counter');
@@ -100,14 +122,56 @@ function switchTab(tab) {
 // ── Textarea ──────────────────────────────────────────────────────────────────
 function initTextarea() {
   const ta = $('user-input');
+
   ta.addEventListener('input', () => {
     ta.style.height = 'auto';
     ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+    State.historyIndex = -1; // reset history browsing when typing
   });
+
   ta.addEventListener('keydown', e => {
+    // Send
     if (e.ctrlKey && e.key === 'Enter') {
       e.preventDefault();
       sendMessage();
+      return;
+    }
+
+    // Prompt history — ↑ / ↓
+    if (e.key === 'ArrowUp' && !e.shiftKey) {
+      if (State.promptHistory.length === 0) return;
+      e.preventDefault();
+      if (State.historyIndex < State.promptHistory.length - 1) {
+        State.historyIndex++;
+      }
+      ta.value = State.promptHistory[State.promptHistory.length - 1 - State.historyIndex] ?? '';
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+      // Move cursor to end
+      setTimeout(() => { ta.selectionStart = ta.selectionEnd = ta.value.length; }, 0);
+      return;
+    }
+
+    if (e.key === 'ArrowDown' && !e.shiftKey) {
+      if (State.historyIndex <= 0) {
+        State.historyIndex = -1;
+        ta.value = '';
+        ta.style.height = 'auto';
+        return;
+      }
+      e.preventDefault();
+      State.historyIndex--;
+      ta.value = State.promptHistory[State.promptHistory.length - 1 - State.historyIndex] ?? '';
+      ta.style.height = 'auto';
+      ta.style.height = Math.min(ta.scrollHeight, 140) + 'px';
+      return;
+    }
+
+    // Ctrl+L — clear memory
+    if (e.ctrlKey && e.key === 'l') {
+      e.preventDefault();
+      clearMemory();
+      return;
     }
   });
 }
@@ -232,12 +296,24 @@ function appendProgressBar() {
     <div class="msg-avatar">🤖</div>
     <div class="msg-body" style="width:72%">
       <div class="msg-bubble" style="width:100%">
-        <div id="progress-label" style="font-size:12px;color:var(--text-sub);margin-bottom:8px;">Generating… 0%</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div id="progress-label" style="font-size:12px;color:var(--text-sub)">Generating… 0%</div>
+          <button onclick="interruptGeneration()" style="
+            background:rgba(255,79,106,0.12);border:1px solid rgba(255,79,106,0.3);
+            color:rgba(255,79,106,0.8);border-radius:5px;padding:2px 8px;
+            font-size:10px;cursor:pointer;font-family:var(--font-mono);
+          ">✕ Stop</button>
+        </div>
         <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
       </div>
     </div>`;
   msgs.appendChild(div);
   scrollMessages();
+}
+
+async function interruptGeneration() {
+  await window.api.a1111.interrupt();
+  toast('Generation interrupted', 'info');
 }
 
 function updateProgress(pct, label) {
@@ -295,10 +371,14 @@ function appendImageBubble(dataUrl, params, filename) {
     <div class="msg-body" style="max-width:80%">
       <div class="msg-bubble" style="padding:8px">
         <img class="msg-image" src="${dataUrl}" onclick="openViewer('${dataUrl}')" alt="Generated image" style="cursor:zoom-in"/>
-        <div class="img-params-toggle" onclick="toggleParams('${panelId}')">
-          <span style="font-size:11px;color:var(--text-dim)">⚙</span>
-          <span style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono)">params</span>
-          <div class="param-chips-preview">${chipHTML}</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">
+          <div class="img-params-toggle" onclick="toggleParams('${panelId}')" style="flex:1;min-width:0">
+            <span style="font-size:11px;color:var(--text-dim)">⚙</span>
+            <span style="font-size:10px;color:var(--text-dim);font-family:var(--font-mono)">params</span>
+            <div class="param-chips-preview">${chipHTML}</div>
+          </div>
+          <button onclick="copyPrompt(${JSON.stringify(params.prompt ?? '')})" class="img-action-btn" title="Copy positive prompt">📋</button>
+          <button onclick="regenerateImage()" class="img-action-btn" title="Regenerate with new seed">🎲</button>
         </div>
         <div class="img-params-panel hidden" id="${panelId}">
           <div class="params-section-label">POSITIVE PROMPT</div>
@@ -357,6 +437,7 @@ function populateSettings() {
   $('s-output-dir').value    = s.outputDir           ?? '';
   $('s-encryption').checked  = !!s.encryptionEnabled;
   $('s-enc-key-file').value  = s.encryptionKeyFile   ?? '';
+  $('s-custom-negative').value = s.customNegative ?? '';
 
   const p = s.imageParams ?? {};
   $('p-width').value        = p.width                ?? 512;
@@ -382,7 +463,8 @@ async function saveSettings() {
     modelsDir:         $('s-models-dir').value.trim(),
     outputDir:         $('s-output-dir').value.trim(),
     encryptionEnabled: $('s-encryption').checked,
-    encryptionKeyFile: $('s-enc-key-file').value.trim(),
+    encryptionKeyFile:  $('s-enc-key-file').value.trim(),
+    customNegative:    $('s-custom-negative').value.trim(),
     imageParams: {
       width:                + $('p-width').value,
       height:               + $('p-height').value,
@@ -518,6 +600,7 @@ async function generateImage(rawPrompt, chatParams = {}, requestedModelName = nu
 
   const setRes = await window.api.a1111.setModel(a1111Match.title ?? a1111Match.model_name);
   updateStep(s2, setRes.ok ? `Loaded: ${model.baseName}` : `Load failed — ${setRes.error ?? 'unknown'}`, setRes.ok ? 'done' : 'error');
+  if (setRes.ok) updateLoadedModelPill(model.baseName);
 
   // ── Step 3: LoRA ──────────────────────────────────────────────────────────
   const s3        = addStep(container, 'LoRA selection…', 'spin');
@@ -560,6 +643,9 @@ RULES:
   if (refined?.prompt) {
     positivePrompt = refined.prompt;
     negativePrompt = refined.negative_prompt ?? negativePrompt;
+    // Append global custom negative if set
+    const customNeg = State.settings.customNegative?.trim();
+    if (customNeg) negativePrompt = `${negativePrompt}, ${customNeg}`;
     updateStep(s4, 'Prompt refined');
   } else {
     updateStep(s4, 'Refinement failed — using raw prompt', 'error');
@@ -580,6 +666,11 @@ RULES:
     ...(State.settings.imageParams ?? {}),
     ...chatParams,   // explicit chat overrides win
   };
+
+  // Store for regenerate
+  State.lastPayload        = payload;
+  State.lastRawPrompt      = rawPrompt;
+  State.lastRequestedModel = requestedModelName;
 
   appendProgressBar();
   State.progressInterval = setInterval(async () => {
@@ -627,6 +718,67 @@ RULES:
   toast('Image saved!', 'success');
 }
 
+// ── Regenerate ───────────────────────────────────────────────────────────────
+async function regenerateImage() {
+  if (State.isProcessing) return;
+  if (!State.lastPayload) { toast('Nothing to regenerate yet', 'info'); return; }
+
+  setProcessing(true);
+  clearWelcome();
+
+  // New random seed
+  const payload = { ...State.lastPayload, seed: -1 };
+  State.lastPayload = payload;
+
+  appendBubble('assistant', '🎲 Regenerating with new seed…');
+  forceScrollBottom();
+
+  try {
+    appendProgressBar();
+    State.progressInterval = setInterval(async () => {
+      const prog = await window.api.a1111.progress();
+      updateProgress(
+        prog.progress,
+        `Regenerating… ${Math.round(prog.progress * 100)}%${prog.eta ? ` — ETA: ${prog.eta.toFixed(1)}s` : ''}`
+      );
+    }, 1000);
+
+    const genRes = await window.api.a1111.generate(payload);
+    removeProgress();
+
+    if (genRes.error) {
+      appendBubble('assistant', `⚠ Regeneration failed: ${genRes.error}`);
+      return;
+    }
+
+    const imgData = genRes.images?.[0];
+    if (!imgData) { appendBubble('assistant', '⚠ No image data returned.'); return; }
+
+    const filename = `axiom_${Date.now()}.png`;
+    await window.api.image.save(imgData, filename);
+
+    const dataUrl = `data:image/png;base64,${imgData}`;
+    State.memory.push({
+      role: 'assistant', content: `[Image: ${filename}]`,
+      _display: dataUrl, _isImage: true, _payload: payload, _filename: filename,
+    });
+    renderMemory();
+    appendImageBubble(dataUrl, payload, filename);
+    toast('Regenerated!', 'success');
+  } catch (e) {
+    removeProgress();
+    appendBubble('assistant', `⚠ Error: ${e.message}`);
+  } finally {
+    setProcessing(false);
+  }
+}
+
+function copyPrompt(prompt) {
+  navigator.clipboard.writeText(prompt)
+    .then(() => toast('Prompt copied!', 'success'))
+    .catch(() => toast('Copy failed', 'error'));
+}
+
 // ── Main Agent ────────────────────────────────────────────────────────────────
 async function sendMessage() {
   if (State.isProcessing) return;
@@ -647,6 +799,13 @@ async function sendMessage() {
 
   appendBubble('user', userText);
   forceScrollBottom();
+
+  // Save to prompt history (dedupe consecutive identical prompts)
+  if (State.promptHistory[State.promptHistory.length - 1] !== userText) {
+    State.promptHistory.push(userText);
+    if (State.promptHistory.length > 50) State.promptHistory.shift(); // cap at 50
+  }
+  State.historyIndex = -1;
 
   State.memory.push({ role: 'user', content: userText, _display: userText });
   renderMemory();

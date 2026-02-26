@@ -552,6 +552,49 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
 .params-key { font-size: 8px; color: var(--text-dim); letter-spacing: 0.1em; }
 .params-val { font-size: 11px; color: var(--text-primary); }
 
+.img-params-toggle {
+  border-top: 1px solid var(--border);
+  margin-top: 6px; padding-top: 6px;
+}
+
+/* Image action buttons (copy / regenerate) */
+.img-action-btn {
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: 5px; width: 26px; height: 26px;
+  display: grid; place-items: center; cursor: pointer;
+  font-size: 13px; flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
+}
+.img-action-btn:hover { border-color: var(--accent); background: var(--bg-card); }
+
+/* Currently loaded model pill in titlebar */
+#loaded-model-pill {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(79,138,255,0.08); border: 1px solid rgba(79,138,255,0.15);
+  border-radius: 99px; padding: 2px 10px;
+  font-size: 10px; font-family: var(--font-mono); color: var(--text-sub);
+  transition: opacity 0.3s;
+}
+#loaded-model-pill.hidden { display: none; }
+#loaded-model-pill .pill-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 5px var(--accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Char counter for prompts */
+.char-counter {
+  font-size: 9px; font-family: var(--font-mono);
+  color: var(--text-dim); text-align: right; margin-top: 3px;
+}
+
+/* Keyboard shortcut hints */
+.kbd-hint {
+  font-size: 9px; font-family: var(--font-mono); color: var(--text-dim);
+  background: var(--bg-hover); border: 1px solid var(--border);
+  border-radius: 3px; padding: 1px 5px; white-space: nowrap;
+}
+
 /* ── Misc Utilities ──────────────────────────────────────────────────────── */
 .flex-center { display: flex; align-items: center; }
 .gap-8 { gap: 8px; }
@@ -622,7 +665,10 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
     <div class="spacer"></div>
     <div class="status-bar">
       <span id="a1111-status"><span class="status-dot offline" id="a1111-dot"></span>A1111</span>
-      <span id="model-status-label" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">No model loaded</span>
+      <div id="loaded-model-pill" class="hidden">
+        <span class="pill-dot"></span>
+        <span id="loaded-model-name">—</span>
+      </div>
       <span id="token-counter" class="hidden">0 tokens</span>
     </div>
     <div class="window-controls">
@@ -675,9 +721,13 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
           <button id="send-btn" onclick="sendMessage()" title="Send (Ctrl+Enter)">➤</button>
         </div>
         <div class="input-hint">
-          <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to send</span>
-          <span><kbd>Shift</kbd>+<kbd>Enter</kbd> for newline</span>
-          <span id="model-hint" class="text-accent"></span>
+          <span class="kbd-hint">Ctrl+Enter</span><span style="font-size:10px;color:var(--text-dim)"> send</span>
+          <span style="color:var(--text-dim);font-size:10px;margin:0 4px">·</span>
+          <span class="kbd-hint">↑↓</span><span style="font-size:10px;color:var(--text-dim)"> history</span>
+          <span style="color:var(--text-dim);font-size:10px;margin:0 4px">·</span>
+          <span class="kbd-hint">Ctrl+L</span><span style="font-size:10px;color:var(--text-dim)"> clear</span>
+          <span style="flex:1"></span>
+          <span id="model-hint" class="text-accent" style="font-size:10px;font-family:var(--font-mono)"></span>
         </div>
       </div>
     </div>
@@ -749,6 +799,20 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; 
           <div class="form-row">
             <label class="form-label">Output Directory</label>
             <input type="text" class="form-input" id="s-output-dir" placeholder="F:/AI/OwnAI/generated"/>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <div class="setting-group-label">Generation Defaults</div>
+          <div class="form-row">
+            <label class="form-label">Global Negative Prompt <span style="color:var(--text-dim);font-weight:400">(added to every generation)</span></label>
+            <textarea class="form-input" id="s-custom-negative" rows="3"
+              placeholder="e.g. watermark, text, nsfw, ugly hands"
+              style="resize:vertical;font-family:var(--font-mono);font-size:11px;"></textarea>
+          </div>
+          <div class="form-row flex-center gap-8" style="margin-top:6px">
+            <button class="btn btn-outline btn-sm" onclick="regenerateImage()" title="Regenerate last image with new seed">🎲 Regenerate</button>
+            <span style="font-size:10px;color:var(--text-dim)">re-runs last image with a new seed</span>
           </div>
         </div>
 

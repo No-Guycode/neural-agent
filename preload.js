@@ -60,8 +60,10 @@ contextBridge.exposeInMainWorld('api', {
     getModels: ()        => ipcRenderer.invoke('a1111:getModels'),
     setModel:  (m)       => ipcRenderer.invoke('a1111:setModel', m),
     getLoras:  ()        => ipcRenderer.invoke('a1111:getLoras'),
-    generate:  (payload) => ipcRenderer.invoke('a1111:generate', payload),
-    progress:  ()        => ipcRenderer.invoke('a1111:progress'),
+    generate:     (payload) => ipcRenderer.invoke('a1111:generate', payload),
+    progress:     ()        => ipcRenderer.invoke('a1111:progress'),
+    interrupt:    ()        => ipcRenderer.invoke('a1111:interrupt'),
+    currentModel: ()        => ipcRenderer.invoke('a1111:currentModel'),
   },
 
   openai: {
